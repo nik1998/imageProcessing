@@ -74,15 +74,128 @@ void ImageViewer::createCosImage()
     }
     setImage(im);
 }
+QVector<QVector<int>> getGrayMatrix(QImage &image)
+{
+    int n =image.width();
+    int m = image.height();
+    QVector<QVector<int>>a(m);
+    for (int ii = 0; ii < m; ii++) {
+        a[ii].resize(n);
+    }
+    for (int ii = 0; ii < m; ii++) {
+        for (int jj = 0; jj < n; jj++)
+        {
+            a[ii][jj]=0;
+        }
+    }
+    for (int ii = 0; ii < image.height(); ii++) {
+        uchar* scan = image.scanLine(ii);
+        int depth =4;
+        for (int jj = 0; jj < image.width(); jj++) {
+            QRgb* rgbpixel = reinterpret_cast<QRgb*>(scan + jj*depth);
+            int gray = qGray(*rgbpixel);
+            a[ii][jj]=gray;
+            *rgbpixel = QColor(gray, gray, gray).rgba();
+        }
+    }
+    return a;
+}
+void ImageViewer::correlation()
+{
+    QImage image = imageLabel->pixmap()->toImage();
+    int n =image.width();
+    int m = image.height();
+    QVector<QVector<int>>a = getGrayMatrix(image);
+    QImage filter = imageLabel->pixmap()->copy(70,60,70,60).toImage();
+    QVector<QVector<int>>f=getGrayMatrix(filter);
+    QImage res(image.width()-filter.width()+1,image.height()-filter.height()+1,QImage::Format_RGB32);
+    QVector<QVector<int>>r = getGrayMatrix(res);
+    double maxx=0;
+    double su=0;
+    for(int i=0;i<m;i++)
+    {
+        for(int j=0;j<n;j++)
+        {
+            su+=a[i][j];
+        }
+    }
+    su=su/n/m;
+    for (int ii = filter.height()/2; ii < m-filter.height()/2; ii++)
+    {
+        for (int jj =filter.width()/2; jj < n-filter.width()/2; jj++)
+        {
+            double pr  = 0;
+            r[ii-filter.height()/2][jj-filter.width()/2]=0;
+            for(int i=0;i<filter.height();i++)
+            {
+                for(int j=0;j<filter.width();j++)
+                {
+                   pr += (f[i][j] - su)*(a[ii + i-filter.height()/2][jj +j-filter.width()/2] -su);
+                }
+            }
+            r[ii-filter.height()/2][jj-filter.width()/2]=pr/255/255;
+            maxx = max(maxx,abs(pr/255/255));
+            //res.setPixelColor(jj-filter.width()/2,ii-filter.height()/2,qRgb(pr,pr,pr));
+        }
+    }
+    for(int i=0;i<res.height();i++)
+    {
+        for(int j=0;j<res.width();j++)
+        {
+            r[i][j]=abs(r[i][j]*255/maxx);
+            //cout<<r[i][j];
+            res.setPixelColor(j,i,qRgb(r[i][j],r[i][j],r[i][j]));
+        }
+    }
+    imageLabel->setPixmap(QPixmap::fromImage(image));
+    tempWindow.tempLabel->setPixmap(QPixmap::fromImage(res));
+    tempWindow.tempLabel->adjustSize();
+    tempWindow.show();
+    frWindow.tempLabel->setPixmap(QPixmap::fromImage(filter));
+    frWindow.tempLabel->adjustSize();
+    frWindow.show();
+}
+void ImageViewer::sobel()
+{
+    QImage image = imageLabel->pixmap()->toImage();
+    int msobel[3][3]={{-1,0,1},{-2,0,2},{-1,0,1}};
+
+    QVector<QVector<int>>a=getGrayMatrix(image);
+    int n =image.width();
+    int m = image.height();
+    QImage res(image.width()-2,image.height()-2,QImage::Format_RGB32);
+    for (int ii = 1; ii < m-1; ii++)
+    {
+        for (int jj = 1; jj < n-1; jj++)
+        {
+            int x=0;
+            int y=0;
+            for(int i=0;i<3;i++)
+            {
+                for(int j=0;j<3;j++)
+                {
+                    x+=a[ii+i-1][jj+j-1]*msobel[i][j];
+                    y+=a[ii+i-1][jj+j-1]*msobel[j][i];
+                }
+            }
+            int ans = static_cast<int>(sqrt(x*x+y+y));
+            res.setPixelColor(jj-1,ii-1,qRgb(ans,ans,ans));
+        }
+    }
+    imageLabel->setPixmap(QPixmap::fromImage(image));
+    tempWindow.tempLabel->setPixmap(QPixmap::fromImage(res));
+    tempWindow.tempLabel->adjustSize();
+    tempWindow.show();
+}
 void ImageViewer::fourier()
 {
-    open();
+   // open();
     QImage image = imageLabel->pixmap()->toImage();
     int n = 1;
     while (n < image.width())  n <<= 1;
     int m = 1;
     while (m < image.height())  m <<= 1;
-    QVector<QVector<base>>a(n);
+    QVector<QVector<base>>a(m);
     for (int ii = 0; ii < m; ii++) {
         a[ii].resize(n);
     }
@@ -97,15 +210,12 @@ void ImageViewer::fourier()
         uchar* scan = image.scanLine(ii);
         int depth =4;
         for (int jj = 0; jj < image.width(); jj++) {
-
             QRgb* rgbpixel = reinterpret_cast<QRgb*>(scan + jj*depth);
             int gray = qGray(*rgbpixel);
             a[ii][jj]=gray;
-            cout<< gray<<" ";
             *rgbpixel = QColor(gray, gray, gray).rgba();
             res.setPixelColor(jj,ii,qRgb(255,255,255));
         }
-        cout<<"\n";
     }
     imageLabel->setPixmap(QPixmap::fromImage(image));
     QVector<pair<int,int>> ans =tenHighFrequencies(a, res);
@@ -458,7 +568,10 @@ void ImageViewer::createActions()
     frequentlyAct->setEnabled(true);
     fourierAct = editMenu->addAction(tr("&Fourier transformation"), this, &ImageViewer::fourier);
     fourierAct->setEnabled(true);
-
+    sobelAct= editMenu->addAction(tr("&Sobel"), this, &ImageViewer::sobel);
+    sobelAct->setEnabled(true);
+    correlationFunctionAct = editMenu->addAction(tr("&Correlation function"), this, &ImageViewer::correlation);
+    correlationFunctionAct->setEnabled(true);
 
     QMenu *viewMenu = menuBar()->addMenu(tr("&View"));
 

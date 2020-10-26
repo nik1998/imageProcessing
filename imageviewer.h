@@ -92,6 +92,8 @@ private slots:
     void about();
     void createCosImage();
     void fourier();
+    void sobel();
+    void correlation();
 
 
 private:
@@ -127,6 +129,8 @@ private:
     QAction *normalSizeAct;
     QAction *fitToWindowAct;
     QAction *fourierAct;
+    QAction *sobelAct;
+    QAction *correlationFunctionAct;
 };
 //! [0]
 
