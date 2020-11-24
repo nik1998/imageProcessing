@@ -70,7 +70,7 @@ void ImageViewer::createCosImage()
             int v =abs(static_cast<int>(255*cos(w*i/width)));
             im.setPixelColor(i,j,qRgb(v,v,v));
         }
-        w+=1/2.0;
+        w+=1.0/2;
     }
     setImage(im);
 }
@@ -120,30 +120,28 @@ void ImageViewer::correlation()
         }
     }
     su=su/n/m;
-    for (int ii = filter.height()/2; ii < m-filter.height()/2; ii++)
+    for (int ii = 0; ii < m-filter.height(); ii++)
     {
-        for (int jj =filter.width()/2; jj < n-filter.width()/2; jj++)
+        for (int jj =0; jj < n-filter.width(); jj++)
         {
             double pr  = 0;
-            r[ii-filter.height()/2][jj-filter.width()/2]=0;
+            r[ii][jj]=0;
             for(int i=0;i<filter.height();i++)
             {
                 for(int j=0;j<filter.width();j++)
                 {
-                   pr += (f[i][j] - su)*(a[ii + i-filter.height()/2][jj +j-filter.width()/2] -su);
+                   pr += (f[i][j] - su)*(a[ii + i][jj + j] -su);
                 }
             }
-            r[ii-filter.height()/2][jj-filter.width()/2]=pr/255/255;
-            maxx = max(maxx,abs(pr/255/255));
-            //res.setPixelColor(jj-filter.width()/2,ii-filter.height()/2,qRgb(pr,pr,pr));
+            r[ii][jj]=pr;
+            maxx = max(maxx,abs(pr));
         }
     }
     for(int i=0;i<res.height();i++)
     {
         for(int j=0;j<res.width();j++)
         {
-            r[i][j]=abs(r[i][j]*255/maxx);
-            //cout<<r[i][j];
+            r[i][j]=abs(r[i][j]/maxx*255);
             res.setPixelColor(j,i,qRgb(r[i][j],r[i][j],r[i][j]));
         }
     }
@@ -219,6 +217,7 @@ void ImageViewer::fourier()
     }
     imageLabel->setPixmap(QPixmap::fromImage(image));
     QVector<pair<int,int>> ans =tenHighFrequencies(a, res);
+    ImageViewer::image=res;
     tempWindow.tempLabel->setPixmap(QPixmap::fromImage(res));
     tempWindow.tempLabel->adjustSize();
     tempWindow.show();
@@ -342,7 +341,7 @@ QVector<pair<int,int>> ImageViewer::tenHighFrequencies (QVector<QVector<base>> f
     for (int ii = 0; ii < res.height(); ii++) {
         for (int jj = 0; jj < res.width(); jj++) {
             int gray = static_cast<int>(f[ii][jj].real());
-            //cout<< gray<<" ";
+            cout<< f[ii][jj].imag()<<" ";
             res.setPixelColor(jj,ii,qRgb(gray, gray, gray));
         }
         //cout<< "\n";
