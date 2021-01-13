@@ -94,6 +94,7 @@ private slots:
     void fourier();
     void sobel();
     void correlation();
+    void paralFilter();
 
 
 private:
@@ -108,7 +109,6 @@ private:
     void fft (QVector<base> & a, bool invert);
     template <typename T>
     QVector<QVector<T>> transpose(QVector<QVector<T>> v);
-
     QImage image;
     QLabel *imageLabel;
     QScrollArea *scrollArea;
@@ -131,6 +131,7 @@ private:
     QAction *fourierAct;
     QAction *sobelAct;
     QAction *correlationFunctionAct;
+    QAction *paralFilterAct;
 };
 //! [0]
 

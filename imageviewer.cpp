@@ -362,7 +362,351 @@ void ImageViewer::setImage(const QImage &newImage)
     if (!fitToWindowAct->isChecked())
         imageLabel->adjustSize();
 }
+void paralFilter2()
+{
+    //коэффициенты фильтра
+    /*const int K=32;
+    int Mm = 16;
+    int Mp = 15;
+    double A[K] = {
+        0.0367316711512348,
+        -0.0537254509678819,
+        -0.0129107821149186,
+        0.0693628228284348,
+        -0.0269024231120065,
+        -0.0638222731838814,
+        0.0184129503661048,
+        0.0225964415040731,
+        -0.00233868994460969,
+        0.0101865465969841,
+        -0.00131897219849040,
+        0.00833515619182315,
+        -0.00535453902834049,
+        -0.00453504977658999,
+        0.0194856724143639,
+        -0.0320402804496804,
+        0.0250253383813977,
+        -0.00894687487665360,
+        -0.00765752217537892,
+        0.0126119292816047,
+        -0.00518295819695077,
+        -4.53727989036972e-05,
+        0.00197933044135543,
+        0.00367376024645813,
+        -0.00612370987881301,
+        0.00509387389843517,
+        -0.00252372603010663,
+        0.00116173196635047,
+        -0.00287553083884250,
+        0.00365106639510933,
+        -0.00358446117667515,
+        0.00158032508499424
+    };
+    QImage image = imageLabel->pixmap()->toImage();
+    QImage res(image.width(),image.height(),QImage::Format_RGB32);
 
+    float gr, g1r, g2r, f1r, f2r, f3r, f4r, f1r2, f2r2;
+    float gg, g1g, g2g, f1g, f2g, f3g, f4g, f1g2, f2g2;
+    float gb, g1b, g2b, f1b, f2b, f3b, f4b, f1b2, f2b2;
+    QVector<QVector<QVector3D>>r(image.width());
+    for (int ii = 0; ii < image.width(); ii++) {
+        r[ii].resize(image.height());
+    }
+    for (int ii = 0; ii < image.width(); ii++) {
+        for (int jj = 0; jj < image.height(); jj++)
+        {
+            r[ii][jj]=QVector3D(0,0,0);
+        }
+    }
+    //цикл по звеньям
+    float maxx=0;
+    for (int i =0;i<K;i++)
+    {
+        //расчет коэффициента C каждого звена
+        float c = 2 * cos( M_PI* i / K);
+
+        //цикл по строкам
+        for (int y = 0; y < image.height(); y++)
+        {
+            QVector<QVector3D>p;
+            for(int  j= 0; j < image.width(); j++)
+            {
+                QColor c = image.pixelColor(j,y);
+                p.push_back(QVector3D(c.red(),c.green(),c.blue()));
+            }
+
+            f1r2 = f2r2 = p[0][0];
+            f1g2 = f2g2 = p[0][1];
+            f1b2 = f2b2 = p[0][2];
+            g1r = g2r = gr = f1r = f2r = f3r = f4r = 0;
+            g1g = g2g = gg = f1g = f2g = f3g = f4g = 0;
+            gb = f1b = f2b = f3b = f4b = g1b = g2b = 0;
+
+            //цикл по столбцам
+            for (int x = -Mm; x < image.width(); x++)
+            {
+                // проверка выхода за пределы слева (всё, что левее, равно нулю)
+                if (x - Mp - 1 < 0)
+                {
+                    f2r = f1r = p[x + Mm][0];
+                    f2g = f1g = p[x + Mm][1];
+                    f2b = f1b = p[x + Mm][2];
+                }
+                // проверка выхода за пределы справа (всё, что правее, равно крайнему правому пикселю)
+                else if (x + Mm >= image.width())
+                {
+                    f1r = p[image.width() - 1][0] - p[x - Mp - 1][0];
+                    f1g = p[image.width() - 1][1] - p[x - Mp - 1][1];
+                    f1b = p[image.width() - 1][2] - p[x - Mp - 1][2];
+                    f2r = p[image.width() - 1][0] + p[x - Mp - 1][0];
+                    f2g = p[image.width() - 1][1] + p[x - Mp - 1][1];
+                    f2b = p[image.width() - 1][2] + p[x - Mp - 1][2];
+                }
+                else
+                {
+                    f1r = p[x + Mm][0] - p[x - Mp - 1][0];
+                    f1g = p[x + Mm][1] - p[x - Mp - 1][1];
+                    f1b = p[x + Mm][2] - p[x - Mp - 1][2];
+                    f2r = p[x + Mm][0] + p[x - Mp - 1][0];
+                    f2g = p[x + Mm][1] + p[x - Mp - 1][1];
+                    f2b = p[x + Mm][2] + p[x - Mp - 1][2];
+                }
+
+                f3r = f1r - f1r2;
+                f3g = f1g - f1g2;
+                f3b = f1b - f1b2;
+                f4r = f2r - f2r2;
+                f4g = f2g - f2g2;
+                f4b = f2b - f2b2;
+
+                if (i == 0)
+                {
+                    gr = g1r + f1r;
+                    gg = g1g + f1g;
+                    gb = g1b + f1b;
+                }
+                //если jk четное
+                else if ((i % 2) == 0)
+                {
+                    gr = c * g1r - g2r + f3r;
+                    gg = c * g1g - g2g + f3g;
+                    gb = c * g1b - g2b + f3b;
+                }
+                //если jk нечетное
+                else
+                {
+                    gr = c * g1r - g2r + f4r;
+                    gg = c * g1g - g2g + f4g;
+                    gb = c * g1b - g2b + f4b;
+                }
+                //складываем результаты обработки звеньев
+                if (x >= 0)
+                {
+                    r[x][y][0] = r[x][y][0] + gr * A[i];
+                    r[x][y][1] = r[x][y][1] + gg * A[i];
+                    r[x][y][2] = r[x][y][2] + gb * A[i];
+                }
+                //запоминаем предыдущие расчеты
+                g2r = g1r; g1r = gr;
+                g2g = g1g; g1g = gg;
+                g2b = g1b; g1b = gb;
+                f1r2 = f1r; f1g2 = f1g; f1b2 = f1b;
+                f2r2 = f2r; f2g2 = f2g; f2b2 = f2b;
+            }
+        }
+    }
+    for (int ii = 0; ii < image.width(); ii++) {
+        for (int jj = 0; jj < image.height(); jj++)
+        {
+            if(r[ii][jj][0] < 0 || r[ii][jj][1] < 0 || r[ii][jj][2] < 0)
+            {
+                cout<<ii<<" "<<jj<<"\n";
+            }
+            r[ii][jj][0] = abs(r[ii][jj][0]);
+            r[ii][jj][1] = abs(r[ii][jj][1]);
+            r[ii][jj][2] = abs(r[ii][jj][2]);
+            maxx= max(max(max( maxx,r[ii][jj][0]),r[ii][jj][1]),r[ii][jj][2]);
+        }
+    }
+    for (int ii = 0; ii < image.width(); ii++) {
+        for (int jj = 0; jj < image.height(); jj++)
+        {
+            float k = 1;//255.0/maxx;
+            res.setPixelColor(ii,jj,qRgb(k*r[ii][jj][0], k*r[ii][jj][1], k*r[ii][jj][2]));
+        }
+    }
+    imageLabel->setPixmap(QPixmap::fromImage(res));*/
+
+}
+void ImageViewer::paralFilter()
+{
+    const int KK=32;
+    double A[KK] = {
+        0.0367316711512348,
+        -0.0537254509678819,
+        -0.0129107821149186,
+        0.0693628228284348,
+        -0.0269024231120065,
+        -0.0638222731838814,
+        0.0184129503661048,
+        0.0225964415040731,
+        -0.00233868994460969,
+        0.0101865465969841,
+        -0.00131897219849040,
+        0.00833515619182315,
+        -0.00535453902834049,
+        -0.00453504977658999,
+        0.0194856724143639,
+        -0.0320402804496804,
+        0.0250253383813977,
+        -0.00894687487665360,
+        -0.00765752217537892,
+        0.0126119292816047,
+        -0.00518295819695077,
+        -4.53727989036972e-05,
+        0.00197933044135543,
+        0.00367376024645813,
+        -0.00612370987881301,
+        0.00509387389843517,
+        -0.00252372603010663,
+        0.00116173196635047,
+        -0.00287553083884250,
+        0.00365106639510933,
+        -0.00358446117667515,
+        0.00158032508499424
+    };
+
+    //double A[KK] = {0.0367316711512348,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,};
+    /*double A[KK] = {
+        0.0367316711512348,
+       -0.0537254509678819,
+        -0.0129107821149186,
+        0.0693628228284348,
+        -0.0269024231120065,
+        -0.0638222731838814,
+        0.0184129503661048,
+        0.0225964415040731,
+        -0.00233868994460969,
+        0.0101865465969841,
+        -0.00131897219849040,
+        0.00833515619182315,
+        -0.00535453902834049,
+        -0.00453504977658999,
+        0.0194856724143639,
+        -0.0320402804496804,
+        0.0250253383813977,
+        -0.00894687487665360,
+        -0.00765752217537892,
+        0.0126119292816047,
+        -0.00518295819695077,
+        -4.53727989036972e-05,
+        0.00197933044135543,
+        0.00367376024645813,
+        -0.00612370987881301,
+        0.00509387389843517,
+        -0.00252372603010663,
+        0.00116173196635047,
+        -0.00287553083884250,
+        0.00365106639510933,
+        -0.00358446117667515,
+       0.00158032508499424
+    };*/
+    const int K=32;
+
+    QImage image = imageLabel->pixmap()->toImage();
+    QImage ans(image.width()+K,image.height(),QImage::Format_RGB32);
+    QVector<QVector<int>>a=getGrayMatrix(image);
+    int n =image.width();
+    int m = image.height();
+    QVector<QVector<QVector<double>>>g(KK);
+    for(int i=0;i<KK;i++)
+    {
+        g[i].resize(m);
+        double c = 2*cos(M_PI*(double)(i)/K);
+        cout<<c<<"\n";
+        for (int ii = 0; ii < m; ii++)
+        {
+            g[i][ii].resize(n+K+2);
+            QVector<double>f(n+2*K);
+            g[i][ii][0]=0;
+            g[i][ii][1]=0;
+            for (int jj = 0; jj < n; jj++)
+            {
+                f[jj+K] = a[ii][jj];
+            }
+            for (int jj = 0; jj < K; jj++)
+            {
+                f[jj] = 0;
+                f[jj+n+K] = 0;
+            }
+            for (int jj = 20; jj < n+K; jj++)
+            {
+                if(i==0)
+                {
+                    g[i][ii][jj+2]=g[i][ii][jj+1] + f[jj+K]-f[jj];
+                }
+                else
+                {
+                    double f3 = 0;
+                    double f4 = 0;
+                    if(jj==0)
+                    {
+                        f3 = f[jj+K]-f[jj]-f[jj+K-1];
+                        f4 = f[jj+K]+f[jj]-f[jj+K-1];
+                    }
+                    else
+                    {
+                          f3 = f[jj+K]-f[jj]-(f[jj+K-1]-f[jj-1]);
+                          f4 = f[jj+K]+f[jj]-(f[jj+K-1]+f[jj-1]);
+                    }
+                    if(i%2==0)
+                    {
+                        g[i][ii][jj+2]=c*g[i][ii][jj+1]-g[i][ii][jj]+f3;
+                    }
+                    else
+                    {
+                        g[i][ii][jj+2]=c*g[i][ii][jj+1]-g[i][ii][jj]+f4;
+                    }
+                }
+            }
+        }
+    }
+    int ct=0;
+    int maxx=0;
+    int minn=0;
+    for (int ii = 0; ii < m; ii++) {
+        for (int jj = 0; jj < n+K; jj++)
+        {
+            double su=0;
+            for(int i=0;i<KK;i++)
+            {
+                su+=g[i][ii][jj+2]*A[i];
+            }
+            int r = (int)su;
+            if(r<0)
+            {
+                minn=min(minn,r);
+                //cout<<r<<"\n";
+                r=0;
+                ct++;
+            }
+            if(r>255)
+            {
+                maxx=max(maxx,r);
+                //cout<<r<<"\n";
+                r=255;      
+                ct++;
+            }
+            //r = (r +92)/430;
+            ans.setPixelColor(jj,ii,qRgb(r, r, r));
+        }
+    }
+    cout<<maxx<<" "<<minn<<endl;
+    imageLabel->setPixmap(QPixmap::fromImage(image));
+    tempWindow.tempLabel->setPixmap(QPixmap::fromImage(ans));
+    tempWindow.tempLabel->adjustSize();
+    tempWindow.show();
+}
 
 bool ImageViewer::saveFile(const QString &fileName)
 {
@@ -409,6 +753,7 @@ void ImageViewer::open()
     initializeImageFileDialog(dialog, QFileDialog::AcceptOpen);
 
     while (dialog.exec() == QDialog::Accepted && !loadFile(dialog.selectedFiles().first())) {}
+    paralFilter();
 }
 
 
@@ -571,6 +916,8 @@ void ImageViewer::createActions()
     sobelAct->setEnabled(true);
     correlationFunctionAct = editMenu->addAction(tr("&Correlation function"), this, &ImageViewer::correlation);
     correlationFunctionAct->setEnabled(true);
+    paralFilterAct= editMenu->addAction(tr("&Parallel filter"), this, &ImageViewer::paralFilter);
+    paralFilterAct->setEnabled(true);
 
     QMenu *viewMenu = menuBar()->addMenu(tr("&View"));
 
