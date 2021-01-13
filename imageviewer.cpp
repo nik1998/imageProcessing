@@ -639,7 +639,7 @@ void ImageViewer::paralFilter()
                 f[jj] = 0;
                 f[jj+n+K] = 0;
             }
-            for (int jj = 20; jj < n+K; jj++)
+            for (int jj = 0; jj < n+K; jj++)
             {
                 if(i==0)
                 {
