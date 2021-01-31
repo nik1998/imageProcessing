@@ -95,6 +95,7 @@ private slots:
     void sobel();
     void correlation();
     void paralFilter();
+    void convFFT();
 
 
 private:
@@ -106,6 +107,7 @@ private:
     void scaleImage(double factor);
     void adjustScrollBar(QScrollBar *scrollBar, double factor);
     QVector<pair<int,int>> tenHighFrequencies ( QVector<QVector<base>> a,QImage &res);
+    void getConvFFT (QVector<QVector<base>> f,QVector<QVector<base>> h,QImage &res);
     void fft (QVector<base> & a, bool invert);
     template <typename T>
     QVector<QVector<T>> transpose(QVector<QVector<T>> v);
@@ -132,6 +134,7 @@ private:
     QAction *sobelAct;
     QAction *correlationFunctionAct;
     QAction *paralFilterAct;
+    QAction *fftConvAct;
 };
 //! [0]
 
